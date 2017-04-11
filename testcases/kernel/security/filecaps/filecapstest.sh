@@ -51,4 +51,14 @@ if [ $tmp -ne 0 ]; then
 fi
 
 unlink $FIFOFILE
+
+type lxc-usernsexec > /dev/null 2>&1 || { echo "Skipping container tests (no lxc)"; exit $exit_code; }
+type setcap > /dev/null 2>&1 || { echo "Skipping container tests (no libcap2)"; exit $exit_code; }
+
+nsfilecaptests.sh
+tmp=$?
+if [ $tmp -ne 0 ]; then
+	exit_code=$tmp
+fi
+
 exit $exit_code
