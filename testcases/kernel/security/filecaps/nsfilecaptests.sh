@@ -18,7 +18,7 @@
 ################################################################################
 
 TCID="nsfilecaps"
-TST_TOTAL=9
+TST_TOTAL=13
 TST_CLEANUP=finish
 . test.sh
 
@@ -138,5 +138,45 @@ else
 	tst_resm TFAIL "cousin container user is granted container filecaps"
 fi
 kill -9 $p
+
+setcap -r ${fullpath}
+
+echo "testing writing a v3 filecap with rootid 0 in container"
+lxc-usernsexec -m b:0:300000:2 -- setv3xattr 0 ${fullpath}
+res=`getv3xattr ${fullpath}`
+echo "result is: $res"
+if [ "$res" != "v3 xattr, rootid is 300000" ]; then
+	tst_resm TFAIL "wrong v3 rootid was written"
+else
+	tst_resm TPASS "v3 rootid was written correctly"
+fi
+
+echo "testing writing a v3 filecap with rootid 1 in container"
+lxc-usernsexec -m b:0:300000:2 -- setv3xattr 1 ${fullpath}
+res=`getv3xattr ${fullpath}`
+echo "result is: $res"
+if [ "$res" != "v3 xattr, rootid is 300001" ]; then
+	tst_resm TFAIL "wrong v3 rootid was written"
+else
+	tst_resm TPASS "v3 rootid was written correctly"
+fi
+
+echo "testing writing a v3 filecap with rootid 2 (invalid) in container"
+# setv3xattr should have failed, and the previous xattr value should remain
+lxc-usernsexec -m b:0:300000:2 -- setv3xattr 2 ${fullpath}
+ret=$?
+if [ $ret -eq 0 ]; then
+	tst_resm TFAIL "invalid setv3xattr succeeded"
+else
+	tst_resm TPASS "invalid setv3xattr failed correctly"
+fi
+
+res=`getv3xattr ${fullpath}`
+echo "result is: $res"
+if [ "$res" != "v3 xattr, rootid is 300001" ]; then
+	tst_resm TFAIL "wrong v3 rootid was written"
+else
+	tst_resm TPASS "v3 rootid was written correctly"
+fi
 
 tst_exit
