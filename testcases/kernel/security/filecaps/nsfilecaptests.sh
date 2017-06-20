@@ -72,6 +72,8 @@ else
 	tst_resm TFAIL "Unpriv container user can set v2 filecap"
 fi
 
+setcap -r sleepx
+
 echo "testing container root user using v2 filecap"
 lxc-usernsexec -m b:0:300000:100000 -- setcap cap_sys_admin+pe sleepx
 if [ $? -eq 0 ]; then
@@ -89,8 +91,8 @@ else
 fi
 
 echo "testing global user reading filecap"
-getcap sleepx 2>&1 | grep "Numerical result out of range"
-if [ $? -eq 0 ]; then
+o=`getcap sleepx`
+if [ -z "$o" ]; then
 	tst_resm TPASS "Global root does not see child's virtualized caps"
 else
 	tst_resm TFAIL "Global root sees child's virtualized caps"
@@ -143,9 +145,7 @@ setcap -r ${fullpath}
 
 echo "testing writing a v3 filecap with rootid 0 in container"
 lxc-usernsexec -m b:0:300000:2 -- setv3xattr 0 ${fullpath}
-res=`getv3xattr ${fullpath}`
-echo "result is: $res"
-if [ "$res" != "v3 xattr, rootid is 300000" ]; then
+if ! getv3xattr ${fullpath}`; then
 	tst_resm TFAIL "wrong v3 rootid was written"
 else
 	tst_resm TPASS "v3 rootid was written correctly"
@@ -153,9 +153,7 @@ fi
 
 echo "testing writing a v3 filecap with rootid 1 in container"
 lxc-usernsexec -m b:0:300000:2 -- setv3xattr 1 ${fullpath}
-res=`getv3xattr ${fullpath}`
-echo "result is: $res"
-if [ "$res" != "v3 xattr, rootid is 300001" ]; then
+if ! getv3xattr ${fullpath} 300001`; then
 	tst_resm TFAIL "wrong v3 rootid was written"
 else
 	tst_resm TPASS "v3 rootid was written correctly"
@@ -169,14 +167,6 @@ if [ $ret -eq 0 ]; then
 	tst_resm TFAIL "invalid setv3xattr succeeded"
 else
 	tst_resm TPASS "invalid setv3xattr failed correctly"
-fi
-
-res=`getv3xattr ${fullpath}`
-echo "result is: $res"
-if [ "$res" != "v3 xattr, rootid is 300001" ]; then
-	tst_resm TFAIL "wrong v3 rootid was written"
-else
-	tst_resm TPASS "v3 rootid was written correctly"
 fi
 
 tst_exit
